@@ -1,8 +1,6 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Check, Droplets, BookOpen, Dumbbell, Utensils, Camera, Activity } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Check, Droplets, BookOpen, Dumbbell, Utensils, Camera, Activity, Flame, Trophy, Target } from 'lucide-react';
 import { useTrackerState } from '../hooks/useTrackerState';
-import { cn } from '../lib/utils';
 import confetti from 'canvas-confetti';
 
 const QUOTES = [
@@ -10,216 +8,182 @@ const QUOTES = [
   "Don't stop when you're tired. Stop when you're done.",
   "It never gets easier, you just get stronger.",
   "You're only one workout away from a good mood.",
-  "Small daily improvements are the key to staggering long-term results."
+  "Small daily improvements are the key to staggering long-term results.",
+  "The pain you feel today will be the strength you feel tomorrow.",
+  "Every day is a chance to be better than yesterday.",
 ];
 
 export default function Dashboard() {
-  const { state, toggleTask, drinkWater, updateAddon, isDayComplete } = useTrackerState();
+  const { state, toggleTask, drinkWater, updateAddon } = useTrackerState();
   const quote = QUOTES[state.currentDay % QUOTES.length];
 
-  // Calculate completion percentage for today
   const tasksDone = Object.values(state.dailyTasks).filter(Boolean).length;
-  const totalTasks = 5; // photo, diet, workout1, workout2, reading
   const waterDone = state.waterTaps >= 8 ? 1 : 0;
   const metricsDone = tasksDone + waterDone;
   const totalMetrics = 6;
   const progressPercent = Math.round((metricsDone / totalMetrics) * 100);
 
+  const circumference = 2 * Math.PI * 40;
+  const strokeDash = circumference - (circumference * progressPercent) / 100;
+
+  const [celebrated, setCelebrated] = useState(false);
   useEffect(() => {
-    if (metricsDone === totalMetrics) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#6366f1', '#10b981', '#3b82f6']
-      });
+    if (metricsDone === totalMetrics && !celebrated) {
+      setCelebrated(true);
+      try {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#6366f1', '#10b981', '#3b82f6'] });
+      } catch(e) {}
     }
+    if (metricsDone < totalMetrics) setCelebrated(false);
   }, [metricsDone]);
 
+  const completionRate = state.currentDay > 1
+    ? Math.round((state.stats.completedDays / (state.currentDay - 1)) * 100)
+    : 100;
+
   return (
-    <div className="max-w-md mx-auto min-h-screen px-4 pt-10 pb-20 space-y-8">
+    <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem 1rem 6rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
       {/* Header */}
-      <header className="flex justify-between items-center mb-6">
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">75 Hard</h1>
-          <p className="text-sm font-medium text-gray-500">Navaneeth's Dashboard</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: 900, color: '#111827', margin: 0, letterSpacing: '-0.5px' }}>75 Hard</h1>
+          <p style={{ fontSize: '0.85rem', fontWeight: 500, color: '#9ca3af', margin: 0 }}>Navaneeth's Dashboard</p>
         </div>
-        <div className="h-12 w-12 rounded-full overflow-hidden border border-gray-200">
-          <img src="https://ui-avatars.com/api/?name=Navaneeth&background=0D8ABC&color=fff" alt="Avatar" />
-        </div>
+        <img
+          src="https://ui-avatars.com/api/?name=Navaneeth&background=6366f1&color=fff&bold=true&size=96"
+          alt="Avatar"
+          style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid #e5e7eb' }}
+        />
       </header>
 
-      {/* Hero Section */}
-      <section className="glass-card p-6 flex items-center justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-32 h-32 rounded-full bg-indigo-500/10 blur-2xl pointer-events-none" />
-        <div className="z-10">
-          <h2 className="text-xs font-semibold text-indigo-500 uppercase tracking-widest mb-1">Current Progress</h2>
-          <div className="text-4xl font-black text-gray-900 mb-2">Day {state.currentDay} <span className="text-lg text-gray-400 font-medium tracking-normal">/ 75</span></div>
-          <p className="text-sm text-gray-500 italic max-w-[200px]">"{quote}"</p>
+      {/* Hero Card */}
+      <div className="glass-card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.15), transparent)', pointerEvents: 'none' }} />
+        <div style={{ zIndex: 1 }}>
+          <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 0.25rem' }}>Current Progress</p>
+          <div style={{ fontSize: '2.5rem', fontWeight: 900, color: '#111827', lineHeight: 1.1, margin: '0 0 0.5rem' }}>
+            Day {state.currentDay} <span style={{ fontSize: '1.1rem', fontWeight: 500, color: '#9ca3af' }}>/ 75</span>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic', maxWidth: 180, margin: 0 }}>"{quote}"</p>
         </div>
-        
-        {/* Circular Progress */}
-        <div className="relative w-24 h-24 flex items-center justify-center shrink-0 z-10">
-          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" className="text-gray-100 stroke-current" strokeWidth="8" fill="none" />
-            <motion.circle 
-              cx="50" cy="50" r="40" 
-              className={cn("stroke-current transition-colors duration-500", metricsDone === totalMetrics ? 'text-emerald-500' : 'text-indigo-500')} 
-              strokeWidth="8" fill="none" 
-              strokeDasharray="251.2" 
-              initial={{ strokeDashoffset: 251.2 }}
-              animate={{ strokeDashoffset: 251.2 - (251.2 * progressPercent) / 100 }}
-              transition={{ duration: 1, ease: 'easeOut' }}
-              strokeLinecap="round" 
+        <div style={{ position: 'relative', width: 96, height: 96, flexShrink: 0 }}>
+          <svg width="96" height="96" viewBox="0 0 100 100" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+            <circle
+              cx="50" cy="50" r="40" fill="none"
+              stroke={metricsDone === totalMetrics ? '#10b981' : '#6366f1'}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={strokeDash}
+              style={{ transition: 'stroke-dashoffset 0.8s ease, stroke 0.5s ease' }}
             />
           </svg>
-          <div className="absolute inset-0 flex items-center justify-center flex-col">
-            <span className="text-lg font-bold text-gray-900">{progressPercent}%</span>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827' }}>{progressPercent}%</span>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Daily Checklist */}
-      <section className="space-y-3">
-        <h3 className="text-lg font-bold text-gray-900 px-1">Daily Core</h3>
-        <div className="space-y-3">
-          <ChecklistItem title="Strict Diet" subtitle="No cheat meals, no alcohol" icon={Utensils} checked={state.dailyTasks.diet} onClick={() => toggleTask('diet')} />
-          <ChecklistItem title="Workout 1 (Indoor)" subtitle="45 minutes minimum" icon={Dumbbell} checked={state.dailyTasks.workout1} onClick={() => toggleTask('workout1')} />
-          <ChecklistItem title="Workout 2 (Outdoor)" subtitle="45 minutes minimum" icon={Activity} checked={state.dailyTasks.workout2} onClick={() => toggleTask('workout2')} />
-          <ChecklistItem title="Read Non-Fiction" subtitle="10 pages" icon={BookOpen} checked={state.dailyTasks.reading} onClick={() => toggleTask('reading')} />
+      <section>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: '0 0 0.75rem 0.25rem' }}>Daily Core</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          <ChecklistItem title="Strict Diet" subtitle="No cheat meals • No alcohol" icon={Utensils} checked={state.dailyTasks.diet} onClick={() => toggleTask('diet')} />
+          <ChecklistItem title="Workout 1 — Indoor" subtitle="45 minutes minimum" icon={Dumbbell} checked={state.dailyTasks.workout1} onClick={() => toggleTask('workout1')} />
+          <ChecklistItem title="Workout 2 — Outdoor" subtitle="45 minutes minimum" icon={Activity} checked={state.dailyTasks.workout2} onClick={() => toggleTask('workout2')} />
+          <ChecklistItem title="Read Non-Fiction" subtitle="10 pages minimum" icon={BookOpen} checked={state.dailyTasks.reading} onClick={() => toggleTask('reading')} />
           <ChecklistItem title="Progress Photo" subtitle="Log daily changes" icon={Camera} checked={state.dailyTasks.photo} onClick={() => toggleTask('photo')} />
         </div>
       </section>
 
       {/* Water Tracker */}
-      <section className="glass-card p-6">
-        <div className="flex justify-between items-end mb-4">
+      <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '0.75rem' }}>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Droplets className="w-5 h-5 text-blue-500" /> Water Intake
+            <h3 style={{ fontWeight: 800, color: '#111827', margin: '0 0 0.2rem', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <Droplets size={18} color="#3b82f6" /> Water Intake
             </h3>
-            <p className="text-sm text-gray-500">1 Gallon • 8 Taps</p>
+            <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>1 Gallon • 8 taps</p>
           </div>
-          <div className="text-2xl font-black text-blue-500">{state.waterTaps}/8</div>
+          <span style={{ fontSize: '1.5rem', fontWeight: 900, color: '#3b82f6' }}>{state.waterTaps}/8</span>
         </div>
-        
-        <div className="relative h-16 bg-gray-100 rounded-2xl overflow-hidden cursor-pointer" onClick={drinkWater}>
-          <motion.div 
-            className="absolute bottom-0 left-0 top-0 bg-gradient-to-r from-blue-400 to-cyan-400"
-            initial={{ width: '0%' }}
-            animate={{ width: `${(state.waterTaps / 8) * 100}%` }}
-            transition={{ type: 'spring', stiffness: 50 }}
-          />
-          {/* Tap segments overlay */}
-          <div className="absolute inset-0 flex">
+        <div
+          onClick={drinkWater}
+          style={{ position: 'relative', height: 56, borderRadius: 14, background: '#f3f4f6', overflow: 'hidden', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+        >
+          <div style={{
+            position: 'absolute', top: 0, left: 0, bottom: 0,
+            width: `${(state.waterTaps / 8) * 100}%`,
+            background: 'linear-gradient(90deg, #3b82f6, #06b6d4)',
+            transition: 'width 0.4s ease',
+            borderRadius: 14
+          }} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex' }}>
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="flex-1 border-r border-white/30 last:border-0" />
+              <div key={i} style={{ flex: 1, borderRight: i < 7 ? '1px solid rgba(255,255,255,0.4)' : 'none' }} />
             ))}
           </div>
-          <div className="absolute inset-0 flex items-center justify-center font-bold text-white mix-blend-difference pointer-events-none">
-            {state.waterTaps >= 8 ? 'Hydrated!' : 'Tap to drink'}
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: state.waterTaps > 3 ? 'white' : '#6b7280', fontSize: '0.85rem', pointerEvents: 'none' }}>
+            {state.waterTaps >= 8 ? '🎉 Fully Hydrated!' : `Tap to drink (${8 - state.waterTaps} left)`}
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Stats Panel */}
-      <section className="grid grid-cols-2 gap-4">
-        <div className="glass-card p-4 flex flex-col items-center justify-center text-center">
-          <p className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">Current Streak</p>
-          <div className="text-3xl font-black text-indigo-500">{state.stats.streak} <span className="text-base text-gray-400">days</span></div>
-        </div>
-        <div className="glass-card p-4 flex flex-col items-center justify-center text-center">
-          <p className="text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">Completion</p>
-          <div className="text-3xl font-black text-emerald-500">
-            {state.currentDay > 1 ? Math.round((state.stats.completedDays / (state.currentDay - 1)) * 100) : 100}%
-          </div>
-        </div>
-      </section>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+        <StatCard label="Streak" value={state.stats.streak} unit=" days" color="#6366f1" icon={<Flame size={16} />} />
+        <StatCard label="Best" value={state.stats.longestStreak} unit=" days" color="#f59e0b" icon={<Trophy size={16} />} />
+        <StatCard label="Rate" value={`${completionRate}%`} unit="" color="#10b981" icon={<Target size={16} />} />
+      </div>
 
-      {/* Personal Goals Add-ons */}
-      <section className="space-y-4">
-        <h3 className="text-lg font-bold text-gray-900 px-1">Personal Goals</h3>
-        
-        {/* LeetCode */}
-        <div className="glass-card p-5">
-          <div className="flex justify-between items-center mb-3">
+      {/* Personal Goals */}
+      <section>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', margin: '0 0 0.75rem 0.25rem' }}>Personal Goals</h3>
+        <div className="glass-card" style={{ padding: '1.25rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div>
-              <p className="font-bold text-gray-900">LeetCode Grinder</p>
-              <a href="https://leetcode.com/u/navaneeth___07_/" target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:underline">@navaneeth___07_</a>
+              <p style={{ fontWeight: 800, color: '#111827', margin: '0 0 0.15rem', fontSize: '1rem' }}>LeetCode Grinder</p>
+              <a href="https://leetcode.com/u/navaneeth___07_/" target="_blank" rel="noreferrer" style={{ fontSize: '0.75rem', color: '#6366f1', textDecoration: 'none' }}>@navaneeth___07_</a>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-lg font-bold text-gray-900">{state.addons.leetcode}</span>
-              <motion.button 
-                whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg hover:bg-indigo-100"
-                onClick={() => updateAddon('leetcode', prev => prev + 1)}
-              >
-                +
-              </motion.button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <span style={{ fontSize: '1.4rem', fontWeight: 900, color: '#111827' }}>{state.addons.leetcode}</span>
+              <button
+                onClick={() => updateAddon('leetcode', p => p + 1)}
+                style={{ width: 38, height: 38, borderRadius: '50%', background: '#eef2ff', color: '#6366f1', border: 'none', fontWeight: 800, fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', WebkitTapHighlightColor: 'transparent' }}
+              >+</button>
             </div>
           </div>
-          <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
-            <motion.div 
-              className="h-full bg-indigo-500"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min(100, (state.addons.leetcode / 500) * 100)}%` }} 
-            />
+          <div style={{ height: 6, background: '#f3f4f6', borderRadius: 99, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, (state.addons.leetcode / 500) * 100)}%`, background: 'linear-gradient(90deg, #6366f1, #818cf8)', borderRadius: 99, transition: 'width 0.6s ease' }} />
           </div>
-          <p className="text-xs text-right text-gray-400 mt-1 mt-2">Goal: 500 problems</p>
+          <p style={{ fontSize: '0.72rem', color: '#9ca3af', textAlign: 'right', margin: '0.4rem 0 0' }}>{state.addons.leetcode} / 500 goal</p>
         </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="glass-card p-5">
-            <p className="font-bold text-gray-900 mb-1">Aptitude</p>
-            <p className="text-xs text-gray-500 mb-3">Total Sessions</p>
-            <div className="flex justify-between items-end">
-              <span className="text-2xl font-black text-gray-900">{state.addons.aptitudeSessions}</span>
-              <motion.button 
-                whileTap={{ scale: 0.9 }}
-                onClick={() => updateAddon('aptitudeSessions', p => p + 1)}
-                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full"
-              >
-                Log +
-              </motion.button>
-            </div>
-          </div>
-
-          <div className="glass-card p-5">
-            <p className="font-bold text-gray-900 mb-1">Backend</p>
-            <p className="text-xs text-gray-500 mb-3">Hours Studied</p>
-            <div className="flex justify-between items-end">
-              <span className="text-2xl font-black text-gray-900">{state.addons.backendHours}</span>
-              <motion.button 
-                whileTap={{ scale: 0.9 }}
-                onClick={() => updateAddon('backendHours', p => p + 1)}
-                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-full"
-              >
-                +1hr
-              </motion.button>
-            </div>
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+          <AddonCard title="Aptitude" subtitle="Sessions" value={state.addons.aptitudeSessions} btnLabel="Log +" color="#f59e0b" onClick={() => updateAddon('aptitudeSessions', p => p + 1)} />
+          <AddonCard title="Backend" subtitle="Hours studied" value={state.addons.backendHours} btnLabel="+1hr" color="#10b981" onClick={() => updateAddon('backendHours', p => p + 1)} />
         </div>
       </section>
 
-      {/* Basic Heatmap Placeholder */}
-      <section className="glass-card p-5">
-        <h3 className="text-sm font-bold text-gray-900 mb-4">75-Day Journey</h3>
-        <div className="grid grid-cols-10 gap-1 sm:gap-2">
+      {/* 75-Day Heatmap */}
+      <div className="glass-card" style={{ padding: '1.25rem' }}>
+        <h3 style={{ fontWeight: 800, color: '#111827', margin: '0 0 0.75rem', fontSize: '0.95rem' }}>75-Day Journey</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 5 }}>
           {[...Array(75)].map((_, i) => {
-            // Find past days
-            const dayNum = i + 1;
-            let statusColor = "bg-gray-100";
-            if (dayNum < state.currentDay) {
-              statusColor = "bg-emerald-500/20"; // Just a placeholder, ideally read from heatmap state
-            } else if (dayNum === state.currentDay) {
-              statusColor = "bg-indigo-500 border border-indigo-600";
-            }
+            const d = i + 1;
+            let bg = '#f3f4f6';
+            if (d < state.currentDay) bg = '#bbf7d0';
+            if (d === state.currentDay) bg = '#6366f1';
             return (
-              <div key={i} className={cn("w-full aspect-square rounded-[4px] sm:rounded-md", statusColor)} title={`Day ${dayNum}`} />
-            )
+              <div key={i} title={`Day ${d}`} style={{ aspectRatio: '1', borderRadius: 4, background: bg, border: d === state.currentDay ? '2px solid #4f46e5' : 'none' }} />
+            );
           })}
         </div>
-      </section>
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.7rem', color: '#9ca3af' }}>
+          <span>🟩 Done</span><span>🟦 Today</span><span>⬜ Upcoming</span>
+        </div>
+      </div>
 
     </div>
   );
@@ -227,34 +191,54 @@ export default function Dashboard() {
 
 function ChecklistItem({ title, subtitle, icon: Icon, checked, onClick }) {
   return (
-    <motion.div 
-      whileTap={{ scale: 0.98 }}
+    <div
       onClick={onClick}
-      className={cn(
-        "glass-card p-4 flex items-center gap-4 cursor-pointer transition-all duration-200",
-        checked ? "bg-emerald-50/50 border-emerald-100" : "hover:bg-white/90"
-      )}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem',
+        background: checked ? 'rgba(209,250,229,0.6)' : 'rgba(255,255,255,0.75)',
+        borderRadius: 14, border: checked ? '1px solid #a7f3d0' : '1px solid rgba(255,255,255,0.5)',
+        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer',
+        WebkitTapHighlightColor: 'transparent',
+        transition: 'background 0.25s, border-color 0.25s',
+      }}
     >
-      <div className={cn(
-        "w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors",
-        checked ? "bg-emerald-100 text-emerald-600" : "bg-gray-100 text-gray-500"
-      )}>
-        {checked ? <Check className="w-6 h-6" /> : <Icon className="w-6 h-6" />}
+      <div style={{ width: 44, height: 44, borderRadius: 12, flexShrink: 0, background: checked ? '#d1fae5' : '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: checked ? '#059669' : '#9ca3af', transition: 'background 0.25s' }}>
+        {checked ? <Check size={22} /> : <Icon size={22} />}
       </div>
-      <div className="flex-1 min-w-0">
-        <h4 className={cn("font-bold transition-colors", checked ? "text-emerald-900 line-through opacity-70" : "text-gray-900")}>
-          {title}
-        </h4>
-        <p className="text-sm text-gray-500 truncate">{subtitle}</p>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <h4 style={{ fontWeight: 700, color: checked ? '#064e3b' : '#111827', margin: '0 0 0.1rem', fontSize: '0.95rem', textDecoration: checked ? 'line-through' : 'none', opacity: checked ? 0.7 : 1 }}>{title}</h4>
+        <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</p>
       </div>
-      <div className="shrink-0 pl-2">
-        <div className={cn(
-          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-          checked ? "bg-emerald-500 border-emerald-500" : "border-gray-300"
-        )}>
-          {checked && <Check className="w-4 h-4 text-white" />}
-        </div>
+      <div style={{ width: 24, height: 24, borderRadius: '50%', border: checked ? '2px solid #10b981' : '2px solid #d1d5db', background: checked ? '#10b981' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.25s' }}>
+        {checked && <Check size={14} color="white" strokeWidth={3} />}
       </div>
-    </motion.div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit, color, icon }) {
+  return (
+    <div className="glass-card" style={{ padding: '1rem', textAlign: 'center' }}>
+      <div style={{ color, marginBottom: 4, display: 'flex', justifyContent: 'center' }}>{icon}</div>
+      <p style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, color: '#9ca3af', margin: '0 0 0.25rem' }}>{label}</p>
+      <p style={{ fontSize: '1.5rem', fontWeight: 900, color, margin: 0, lineHeight: 1 }}>{value}<span style={{ fontSize: '0.7rem', fontWeight: 500, color: '#9ca3af' }}>{unit}</span></p>
+    </div>
+  );
+}
+
+function AddonCard({ title, subtitle, value, btnLabel, color, onClick }) {
+  return (
+    <div className="glass-card" style={{ padding: '1rem' }}>
+      <p style={{ fontWeight: 800, color: '#111827', margin: '0 0 0.15rem', fontSize: '0.95rem' }}>{title}</p>
+      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 0.75rem' }}>{subtitle}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <span style={{ fontSize: '1.75rem', fontWeight: 900, color: '#111827' }}>{value}</span>
+        <button
+          onClick={onClick}
+          style={{ padding: '0.35rem 0.75rem', background: color + '20', color, border: 'none', borderRadius: 99, fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
+        >{btnLabel}</button>
+      </div>
+    </div>
   );
 }
